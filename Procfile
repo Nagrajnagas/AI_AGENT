@@ -1,0 +1,1 @@
+web: gunicorn ai_agent_project.wsgi
