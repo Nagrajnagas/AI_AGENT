@@ -58,7 +58,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'ai_agent_project.urls'
+ROOT_URLCONF = 'ai_agent_project.ai_agent_project.urls'
 
 TEMPLATES = [
     {
