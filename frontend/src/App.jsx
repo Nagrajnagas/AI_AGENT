@@ -29,7 +29,7 @@ const App = () => {
 
     try {
       // UPDATED TO YOUR LIVE RENDER URL
-      const response = await fetch('https://ai-agent-14.onrender.com/api/chat/', {
+      const response = await fetch('https://ai-agent-14.onrender.com/chat/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
