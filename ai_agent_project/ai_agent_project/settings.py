@@ -71,7 +71,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'ai_agent_project.wsgi.application'
+WSGI_APPLICATION = 'ai_agent_project.ai_agent_project.wsgi.application'
 
 
 # Database
@@ -128,4 +128,9 @@ CORS_ALLOWED_ORIGINS = [
     "https://ai-agent-xi-nine.vercel.app" # Vercel link!
 ]
 
-MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
+CORS_ALLOW_HEADERS = [
+    "content-type",
+    "authorization",
+]
+
+CORS_ALLOW_CREDENTIALS = True
