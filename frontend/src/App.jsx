@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
 
 const App = () => {
   const [messages, setMessages] = useState([
-    { role: 'ai', text: 'System initialized. How can I assist you today?' }
+    { role: 'ai', text: '### System Initialized\nSecure connection established. How can I assist you today?' }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -13,7 +14,7 @@ const App = () => {
     if (scrollRef.current) {
       scrollRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages]);
+  }, [messages, isLoading]);
 
   const handleSend = async (e) => {
     e.preventDefault();
@@ -27,7 +28,8 @@ const App = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/chat/', {
+      // UPDATED TO YOUR LIVE RENDER URL
+      const response = await fetch('https://ai-agent-14.onrender.com/api/chat/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -35,14 +37,17 @@ const App = () => {
         body: JSON.stringify({ message: userMessage }),
       });
 
-      if (!response.ok) throw new Error('Network response was not ok');
+      if (!response.ok) throw new Error('System Timeout or Network Error');
 
       const data = await response.json();
       
       // Add AI response to UI
       setMessages((prev) => [...prev, { role: 'ai', text: data.response }]);
     } catch (error) {
-      setMessages((prev) => [...prev, { role: 'ai', text: 'Error: Could not connect to the agent.' }]);
+      setMessages((prev) => [...prev, { 
+        role: 'ai', 
+        text: '⚠️ **CRITICAL_ERROR:** Connection to the remote agent failed. Ensure the backend is live.' 
+      }]);
     } finally {
       setIsLoading(false);
     }
@@ -53,7 +58,10 @@ const App = () => {
       {/* Header */}
       <div style={styles.header}>
         <div style={styles.statusDot}></div>
-        <span style={styles.headerTitle}>AI_AGENT</span>
+        <div style={styles.headerText}>
+            <span style={styles.headerTitle}>AI_AGENT_V1.0</span>
+            <span style={styles.headerSubtitle}>LOCATION: BENGALURU_HUB</span>
+        </div>
       </div>
 
       {/* Chat Window */}
@@ -68,19 +76,30 @@ const App = () => {
           >
             <div style={{
               ...styles.bubble,
-              backgroundColor: msg.role === 'user' ? '#005fcc' : '#2d2d2d',
-              borderBottomRightRadius: msg.role === 'user' ? '2px' : '12px',
-              borderBottomLeftRadius: msg.role === 'ai' ? '2px' : '12px',
+              backgroundColor: msg.role === 'user' ? '#0047ab' : '#1e1e1e',
+              borderLeft: msg.role === 'ai' ? '2px solid #00ff41' : 'none',
+              borderRight: msg.role === 'user' ? '2px solid #ffffff' : 'none',
             }}>
-              <div style={styles.roleLabel}>{msg.role.toUpperCase()}</div>
-              <div style={styles.text}>{msg.text}</div>
+              <div style={{
+                  ...styles.roleLabel, 
+                  color: msg.role === 'user' ? '#80b3ff' : '#00ff41'
+              }}>
+                [{msg.role.toUpperCase()}_SESSION]
+              </div>
+              <div style={styles.text}>
+                <ReactMarkdown>{msg.text}</ReactMarkdown>
+              </div>
             </div>
           </div>
         ))}
+        
         {isLoading && (
           <div style={styles.messageWrapper}>
-            <div style={{...styles.bubble, backgroundColor: '#2d2d2d'}}>
-              <span className="typing-dots">Processing...</span>
+            <div style={{...styles.bubble, backgroundColor: '#1e1e1e', borderLeft: '2px solid #f1c40f'}}>
+              <div style={{...styles.roleLabel, color: '#f1c40f'}}>[SYSTEM_PROCESSING]</div>
+              <div className="blink" style={styles.loaderText}>
+                Accessing Groq LPU... (First boot may take 60s)
+              </div>
             </div>
           </div>
         )}
@@ -93,7 +112,7 @@ const App = () => {
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Enter command or message..."
+          placeholder="TYPE COMMAND HERE..."
           style={styles.input}
           disabled={isLoading}
         />
@@ -101,100 +120,93 @@ const App = () => {
           type="submit" 
           style={{
             ...styles.button,
-            opacity: isLoading || !input.trim() ? 0.5 : 1
+            backgroundColor: isLoading ? '#333' : '#00ff41',
+            cursor: isLoading ? 'not-allowed' : 'pointer'
           }}
           disabled={isLoading}
         >
-          EXECUTE
+          {isLoading ? '...' : 'EXEC'}
         </button>
       </form>
+      
+      {/* Global Style for Blinking effect */}
+      <style>{`
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+        .blink { animation: blink 1.5s infinite; }
+      `}</style>
     </div>
   );
 };
 
-// Inline Styles for a "Terminal" aesthetic
 const styles = {
   container: {
     display: 'flex',
     flexDirection: 'column',
     height: '100vh',
-    backgroundColor: '#0f0f0f',
-    color: '#00ff41', // Classic Matrix/Terminal green
-    fontFamily: '"Courier New", Courier, monospace',
+    backgroundColor: '#0a0a0a',
+    color: '#e0e0e0',
+    fontFamily: '"Cascadia Code", "Courier New", monospace',
   },
   header: {
-    padding: '15px 20px',
-    backgroundColor: '#1a1a1a',
-    borderBottom: '1px solid #333',
+    padding: '12px 20px',
+    backgroundColor: '#111',
+    borderBottom: '1px solid #222',
     display: 'flex',
     alignItems: 'center',
-    gap: '10px',
+    gap: '12px',
   },
   statusDot: {
-    width: '10px',
-    height: '10px',
+    width: '8px',
+    height: '8px',
     backgroundColor: '#00ff41',
     borderRadius: '50%',
-    boxShadow: '0 0 5px #00ff41',
+    boxShadow: '0 0 8px #00ff41',
   },
-  headerTitle: {
-    fontSize: '14px',
-    fontWeight: 'bold',
-    letterSpacing: '1px',
-  },
+  headerText: { display: 'flex', flexDirection: 'column' },
+  headerTitle: { fontSize: '12px', fontWeight: 'bold', color: '#00ff41' },
+  headerSubtitle: { fontSize: '9px', color: '#666' },
   chatWindow: {
     flex: 1,
     overflowY: 'auto',
     padding: '20px',
     display: 'flex',
     flexDirection: 'column',
-    gap: '15px',
+    gap: '20px',
   },
-  messageWrapper: {
-    display: 'flex',
-    width: '100%',
-  },
+  messageWrapper: { display: 'flex', width: '100%' },
   bubble: {
-    padding: '12px 16px',
-    maxWidth: '80%',
-    borderRadius: '12px',
-    boxShadow: '0 2px 10px rgba(0,0,0,0.5)',
+    padding: '12px 18px',
+    maxWidth: '85%',
+    borderRadius: '4px',
+    boxShadow: '4px 4px 0px rgba(0,0,0,0.2)',
   },
-  roleLabel: {
-    fontSize: '10px',
-    marginBottom: '5px',
-    opacity: 0.7,
-    fontWeight: 'bold',
-  },
-  text: {
-    fontSize: '14px',
-    lineHeight: '1.5',
-    color: '#ffffff',
-  },
+  roleLabel: { fontSize: '9px', marginBottom: '8px', letterSpacing: '1px' },
+  text: { fontSize: '14px', lineHeight: '1.6', color: '#ffffff' },
+  loaderText: { fontSize: '12px', color: '#f1c40f' },
   inputArea: {
-    padding: '20px',
+    padding: '15px',
     display: 'flex',
     gap: '10px',
-    backgroundColor: '#1a1a1a',
-    borderTop: '1px solid #333',
+    backgroundColor: '#111',
+    borderTop: '1px solid #222',
   },
   input: {
     flex: 1,
     backgroundColor: '#000',
-    border: '1px solid #00ff41',
-    borderRadius: '4px',
+    border: '1px solid #333',
     padding: '12px',
     color: '#00ff41',
+    fontSize: '14px',
     outline: 'none',
   },
   button: {
-    backgroundColor: '#00ff41',
     color: '#000',
     border: 'none',
-    padding: '0 20px',
-    borderRadius: '4px',
-    cursor: 'pointer',
+    padding: '0 25px',
+    borderRadius: '2px',
     fontWeight: 'bold',
+    fontSize: '12px',
+    transition: '0.3s',
   },
 };
 
