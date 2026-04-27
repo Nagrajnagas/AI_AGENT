@@ -2,14 +2,18 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .services.llm import run_agent
 from .services.memory import get_time
+from .services.tools import get_weather_report
 
 @api_view(['POST'])
 def chat(request):
     try:
-        user_message = request.data.get('message')
+        user_message = request.data.get('message', "").lower()
 
-        if not user_message:
+        if not user_message.lower():
             return Response({"response": "Empty input"}, status=400)
+
+        if any(word in user_message for word in ["weather", "temperature", "climate"]):
+            return Response(get_weather_report())
 
         now = get_time()
 
