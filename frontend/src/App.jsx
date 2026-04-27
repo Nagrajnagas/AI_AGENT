@@ -274,7 +274,7 @@ const styles = {
     left: 0,
     width: "100vw",
     height: "100vh",
-    backgroundImage: `url(${bgGif})`,
+      backgroundImage: "url('/b1.gif')",
     backgroundSize: "cover",     // 🔥 full screen
     backgroundPosition: "center",
     backgroundRepeat: "no-repeat",
