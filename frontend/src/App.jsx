@@ -1,8 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
-import Lottie from "lottie-react";
-// import bgAnimation from "./assets/bg-animation.mp4";
-// import bgGif from "./assets/b1.gif";
 
 
 const App = () => {
