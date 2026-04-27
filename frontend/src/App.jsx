@@ -71,8 +71,6 @@ const App = () => {
   <div style={styles.overlay}></div>*/}
 
       <div style={styles.gifBg}></div>
-      <div style={styles.overlay}></div>
-
       <div style={styles.app}>
         {/* CHAT AREA */}
         <div style={styles.chatWindow}>
@@ -279,7 +277,7 @@ const styles = {
     backgroundPosition: "center",
     backgroundRepeat: "no-repeat",
     zIndex: -2,
-    opacity: 0.99,
+    opacity: 0.2,
   },
 };
 
