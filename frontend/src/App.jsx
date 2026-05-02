@@ -1,10 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-
+import './App.css';
 
 const App = () => {
+  const API_URL = import.meta.env.VITE_API_URL;
+
+  const getTime = () =>
+    new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
   const [messages, setMessages] = useState([
-    { role: 'ai', text: 'How can I help you today?' }
+    { role: 'ai', text: 'How can I help you today?', time: getTime() },
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -14,268 +19,181 @@ const App = () => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
 
-  const handleSend = async (e) => {
-    e.preventDefault();
+  const typeMessage = (text) => {
+    if (!text) return;
+
+    let index = 0;
+    setMessages((prev) => [
+      ...prev,
+      { role: 'ai', text: '', time: getTime() },
+    ]);
+
+    const interval = setInterval(() => {
+      index += 1;
+
+      setMessages((prev) => {
+        const updated = [...prev];
+        updated[updated.length - 1].text = text.slice(0, index);
+        return updated;
+      });
+
+      if (index >= text.length) clearInterval(interval);
+    }, 12);
+  };
+
+  const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
     const userMessage = input.trim();
     setInput('');
 
-    setMessages(prev => [...prev, { role: 'user', text: userMessage }]);
+    setMessages((prev) => [
+      ...prev,
+      { role: 'user', text: userMessage, time: getTime() },
+    ]);
+
     setIsLoading(true);
 
     try {
-      const response = await fetch('https://ai-agent-14.onrender.com/chat/', {
+      const response = await fetch(`${API_URL}/chat/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: userMessage }),
       });
 
       const data = await response.json();
+      console.log('API:', data);
 
-      if (data.type === "weather") {
-        setMessages(prev => [
-          ...prev,
-          { role: "weather", data: data.data },
-          { role: "ai", text: data.summary }
-        ]);
-      } else {
-        setMessages(prev => [
-          ...prev,
-          { role: "ai", text: data.response }
-        ]);
+      if (!response.ok || !data || (!data.response && !data.type)) {
+        typeMessage(data?.response || 'Server error. Check backend.');
+        return;
       }
 
-    } catch (error) {
-      setMessages(prev => [
-        ...prev,
-        { role: 'ai', text: '⚠️ Connection failed.' }
-      ]);
+      if (data.type === 'weather') {
+        setMessages((prev) => [
+          ...prev,
+          { role: 'weather', data: data.data, time: getTime() },
+        ]);
+      } else {
+        typeMessage(data.response || 'No response.');
+      }
+    } catch (err) {
+      typeMessage('Connection failed. Please check if the backend is running.');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const startListening = () => {
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      alert('Voice input is not supported in this browser.');
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-IN';
+    recognition.start();
+
+    recognition.onresult = (event) => {
+      setInput(event.results[0][0].transcript);
+    };
+  };
+
+  const handleKeyDown = (event) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      handleSend();
+    }
+  };
+
   return (
-
     <>
-      {/* 🎥 BACKGROUND VIDEO
-  <video autoPlay loop muted playsInline style={styles.videoBg}>
-    <source src={bgAnimation} type="video/mp4" />
-  </video>
+      <div className="gif-bg" />
 
-  {/* 🌑 OVERLAY 
-  <div style={styles.overlay}></div>*/}
-
-      <div style={styles.gifBg}></div>
-      <div style={styles.app}>
-        {/* CHAT AREA */}
-        <div style={styles.chatWindow}>
-          <div style={styles.chatContent}>
-
+      <main className="app-shell">
+        <section className="chat-window" aria-label="AI chat">
+          <div className="chat-content">
             {messages.map((msg, index) => {
-
-              // 🌦 WEATHER CARD
-              if (msg.role === "weather") {
+              if (msg.role === 'weather') {
                 return (
-                  <div key={index} style={styles.weatherCard}>
-                    <h3>📍 {msg.data.city}</h3>
-                    <h1>{msg.data.temp}°C</h1>
-                    <p>{msg.data.description}</p>
-                    <p>💧 {msg.data.humidity}% | 🌬 {msg.data.wind} m/s</p>
+                  <div className="message-row ai" key={index}>
+                    <div className="weather-card">
+                      <div>
+                        <span className="weather-label">Weather</span>
+                        <h2>{msg.data.city}</h2>
+                      </div>
+                      <div className="weather-temp">{msg.data.temp}&deg;C</div>
+                      <div className="weather-grid">
+                        <span>{msg.data.description}</span>
+                        <span>Humidity {msg.data.humidity}%</span>
+                        <span>Wind {msg.data.wind} m/s</span>
+                      </div>
+                      <div className="message-time weather-time">{msg.time}</div>
+                    </div>
                   </div>
                 );
               }
 
-              // 💬 NORMAL CHAT
               return (
-                <div
-                  key={index}
-                  style={{
-                    ...styles.messageRow,
-                    justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start'
-                  }}
-                >
-                  <div style={{
-                    ...styles.bubble,
-                    backgroundColor: msg.role === 'user' ? '#2563eb' : '#2f2f2f'
-                  }}>
-                    <ReactMarkdown>
-                      {typeof msg.text === "string" ? msg.text : ""}
-                    </ReactMarkdown>
-                  </div>
+                <div className={`message-row ${msg.role}`} key={index}>
+                  <article className="bubble">
+                    <ReactMarkdown>{msg.text}</ReactMarkdown>
+                    <div className="message-time">{msg.time}</div>
+                  </article>
                 </div>
               );
             })}
 
             {isLoading && (
-              <div style={styles.messageRow}>
-                <div style={styles.bubble}>Typing...</div>
+              <div className="message-row ai">
+                <div className="typing-bubble" aria-label="AI is typing">
+                  <span />
+                  <span />
+                  <span />
+                </div>
               </div>
             )}
 
             <div ref={scrollRef} />
           </div>
-        </div>
+        </section>
 
-        {/* INPUT */}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSend(e);
-          }}
-          style={styles.inputArea}
-        >
-          <div style={styles.inputWrapper}>
+        <footer className="input-area">
+          <div className="input-wrapper">
             <input
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(event) => setInput(event.target.value)}
+              onKeyDown={handleKeyDown}
               placeholder="Ask anything..."
-              style={styles.input}
+              aria-label="Message"
             />
-
-            <div
-              onClick={() => {
-                if (!input.trim() || isLoading) return;
-                handleSend({ preventDefault: () => { } });
-              }}
-              style={styles.lottieButton}
+            <button
+              className="icon-button"
+              type="button"
+              onClick={startListening}
+              aria-label="Use voice input"
+              title="Voice input"
             >
-              <dotlottie-player
-                src="https://lottie.host/8ae67815-fb6d-46de-a19d-b562165f9853/sfshT3sIYl.lottie"
-                autoplay
-                loop
-                style={{ width: "35px", height: "35px" }}
-              ></dotlottie-player>
-            </div>
+              🎙️
+            </button>
+            <button
+              className="send-button"
+              type="button"
+              onClick={handleSend}
+              disabled={isLoading || !input.trim()}
+              aria-label="Send message"
+              title="Send"
+            >
+              👉
+            </button>
           </div>
-
-
-        </form>
-
-      </div>
+        </footer>
+      </main>
     </>
   );
-};
-
-const styles = {
-  app: {
-    height: '100vh',
-    display: 'flex',
-    flexDirection: 'column',
-    fontFamily: 'Inter, sans-serif',
-    position: "relative",
-    zIndex: 1
-  },
-
-  chatWindow: {
-    flex: 1,
-    overflowY: 'auto',
-    display: 'flex',
-    justifyContent: 'center',
-    padding: '20px'
-  },
-
-  chatContent: {
-    width: '100%',
-    maxWidth: '800px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '16px'
-  },
-
-  messageRow: {
-    display: 'flex',
-    width: '100%'
-  },
-
-  bubble: {
-    padding: '12px 16px',
-    borderRadius: '12px',
-    maxWidth: '70%',
-    lineHeight: '1.5'
-  },
-
-  inputArea: {
-    padding: '16px',
-    borderTop: '1px solid #333',
-    display: 'flex',
-    justifyContent: 'center'
-  },
-
-  inputBox: {
-    display: 'flex',
-    width: '100%',
-    maxWidth: '800px',
-    gap: '10px'
-  },
-
-  inputWrapper: {
-    position: "relative",
-    width: "100%",
-    maxWidth: "800px"
-  },
-  input: {
-    width: "100%",
-    padding: "12px 45px 12px 12px",
-    borderRadius: "10px",
-    border: "none",
-    background: "#2f2f2f",
-    color: "white",
-    outline: "none"
-  },
-
-  lottieButton: {
-    position: "absolute",
-    right: "20px",
-    top: "50%",
-    transform: "translate(150%, -50%)",
-    cursor: "pointer",
-    color: "white",
-    opacity: 0.90
-  },
-
-  weatherCard: {
-    background: "#2f2f2f",
-    borderRadius: "12px",
-    padding: "20px"
-  },
-
-  background: {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    width: "100%",
-    height: "100%",
-    zIndex: 0,
-    opacity: 0.15,   // 🔥 make it subtle
-    pointerEvents: "none" // 🔥 allows clicking UI
-  },
-
-  videoBg: {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    width: "100vw",
-    height: "100vh",
-    objectFit: "cover",
-    zIndex: -2,
-    opacity: 0.99
-  },
-
-  gifBg: {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    width: "100vw",
-    height: "100vh",
-      backgroundImage: "url('/b1.gif')",
-    backgroundSize: "cover",     // 🔥 full screen
-    backgroundPosition: "center",
-    backgroundRepeat: "no-repeat",
-    zIndex: -2,
-    opacity: 0.2,
-  },
 };
 
 export default App;
