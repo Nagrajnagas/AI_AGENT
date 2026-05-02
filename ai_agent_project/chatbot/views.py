@@ -19,8 +19,11 @@ def extract_weather_location(message):
 @api_view(['POST'])
 def chat(request):
     try:
-        user_message = request.data.get('message', "").strip()
-        user_id = request.data.get("user_id", "default_user")  # 🔥 per-user memory
+        if not isinstance(request.data, dict):
+            return Response({"response": "Invalid request body"}, status=400)
+
+        user_message = str(request.data.get('message', "")).strip()
+        user_id = str(request.data.get("user_id", "default_user")).strip() or "default_user"
 
         if not user_message:
             return Response({"response": "Empty input"}, status=400)
