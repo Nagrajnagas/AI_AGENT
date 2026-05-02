@@ -2,6 +2,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 from django.db import DatabaseError
 from ai_agent_project.chatbot.models import ChatMessage 
+import re
 
 IMPORTANT_KEYWORDS = ["name", "from", "live", "age", "work", "study"]
 
@@ -42,6 +43,26 @@ def get_history(user_id):
         return ""
 
     return history
+
+def get_user_name(user_id):
+    try:
+        messages = ChatMessage.objects.filter(
+            user_id=user_id,
+            role="user"
+        ).order_by('-created_at')[:50]
+
+        for msg in messages:
+            match = re.search(
+                r"\bmy name is\s+([a-zA-Z][a-zA-Z .'-]{0,40})",
+                msg.message,
+                re.IGNORECASE,
+            )
+            if match:
+                return match.group(1).strip(" .")
+    except DatabaseError as e:
+        print("MEMORY NAME ERROR:", e)
+
+    return None
 
 def clear_memory(user_id):
     try:

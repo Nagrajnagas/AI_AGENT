@@ -7,6 +7,20 @@ const App = () => {
     import.meta.env.VITE_API_URL || 'https://ai-agent-14.onrender.com'
   ).replace(/\/+$/, '');
 
+  const getUserId = () => {
+    const storageKey = 'ai_agent_user_id';
+    const existingId = localStorage.getItem(storageKey);
+
+    if (existingId) return existingId;
+
+    const newId = crypto.randomUUID
+      ? crypto.randomUUID()
+      : `user-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+    localStorage.setItem(storageKey, newId);
+    return newId;
+  };
+
   const getTime = () =>
     new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -60,7 +74,10 @@ const App = () => {
       const response = await fetch(`${API_URL}/chat/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessage }),
+        body: JSON.stringify({
+          message: userMessage,
+          user_id: getUserId(),
+        }),
       });
 
       const data = await response.json();
