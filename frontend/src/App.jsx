@@ -3,7 +3,9 @@ import ReactMarkdown from 'react-markdown';
 import './App.css';
 
 const App = () => {
-  const API_URL = import.meta.env.VITE_API_URL;
+  const API_URL = (
+    import.meta.env.VITE_API_URL || 'https://ai-agent-14.onrender.com'
+  ).replace(/\/+$/, '');
 
   const getTime = () =>
     new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -78,6 +80,7 @@ const App = () => {
         typeMessage(data.response || 'No response.');
       }
     } catch (err) {
+      console.error('API connection failed:', err);
       typeMessage('Connection failed. Please check if the backend is running.');
     } finally {
       setIsLoading(false);

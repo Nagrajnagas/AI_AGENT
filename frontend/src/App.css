@@ -322,9 +322,19 @@ button {
   border-radius: 999px;
   color: #ffffff;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 0;
   font-weight: 700;
   transition: transform 150ms ease, background 150ms ease, opacity 150ms ease;
+}
+
+.icon-button::before {
+  content: "Mic";
+  font-size: 12px;
+}
+
+.send-button::before {
+  content: "Send";
+  font-size: 12px;
 }
 
 .icon-button {
