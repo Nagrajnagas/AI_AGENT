@@ -58,16 +58,27 @@ def get_history(user_id):
     return history
 
 def get_user_name(user_id):
-    from ai_agent_project.chatbot.models import ChatMessage
+    try:
+        memory_msg = ChatMessage.objects.filter(
+            user_id=user_id,
+            role="memory",
+            message__startswith="name:"
+        ).order_by('-created_at').first()
 
-    msg = ChatMessage.objects.filter(
-        user_id=user_id,
-        role="memory",
-        message__startswith="name:"
-    ).order_by('-created_at').first()
+        if memory_msg:
+            return memory_msg.message.replace("name:", "").strip()
 
-    if msg:
-        return msg.message.replace("name:", "")
+        messages = ChatMessage.objects.filter(
+            user_id=user_id,
+            role="user"
+        ).order_by('-created_at')[:50]
+
+        for msg in messages:
+            name = extract_user_name(msg.message)
+            if name:
+                return name
+    except DatabaseError as e:
+        print("MEMORY NAME ERROR:", e)
 
     return None
 
