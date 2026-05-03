@@ -1,4 +1,4 @@
-# 🤖 AI Agent Terminal (RAG-Enabled)
+# 🤖 AI Agent 
 
 A full-stack, context-aware AI Assistant that solves the "knowledge cutoff" problem using **Retrieval-Augmented Generation (RAG)**. This agent features long-term semantic memory, allowing it to remember past interactions and provide accurate real-time data.
 
