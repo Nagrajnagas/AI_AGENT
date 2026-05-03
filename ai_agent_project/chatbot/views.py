@@ -93,9 +93,21 @@ def chat(request):
 
         provided_name = extract_user_name(user_message)
         if provided_name:
+            # 🔥 DELETE OLD NAME
+            from ai_agent_project.chatbot.models import ChatMessage
+
+            ChatMessage.objects.filter(
+                user_id=user_id,
+                role="memory",
+                message__startswith="name:"
+            ).delete()
+
+            # 🔥 SAVE STRUCTURED MEMORY
             save_message(user_id, "memory", f"name:{provided_name}")
+
             response = f"Nice to meet you, {provided_name}. I'll remember your name."
             save_message(user_id, "ai", response)
+
             return Response({"response": response})
 
         if is_name_question(user_message):
