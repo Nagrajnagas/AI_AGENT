@@ -4,17 +4,29 @@ from django.db import DatabaseError
 from ai_agent_project.chatbot.models import ChatMessage 
 import re
 
-IMPORTANT_KEYWORDS = ["name", "from", "live", "age", "work", "study"]
+NAME_PATTERNS = [
+    r"\bmy name is\s+([a-zA-Z][a-zA-Z .'-]{0,40})",
+    r"\bcall me\s+([a-zA-Z][a-zA-Z .'-]{0,40})",
+]
+NAME_STOP_WORDS = {"and", "but", "from", "i", "my"}
 
-def is_important(message):
-    message = message.lower()
-    return any(word in message for word in IMPORTANT_KEYWORDS)
+
+def extract_user_name(message):
+    for pattern in NAME_PATTERNS:
+        match = re.search(pattern, message, re.IGNORECASE)
+        if match:
+            words = []
+            for word in match.group(1).strip(" .").split():
+                if word.lower() in NAME_STOP_WORDS:
+                    break
+                words.append(word)
+
+            return " ".join(words) or None
+
+    return None
 
 def save_message(user_id, role, message):
     try:
-        if role == "user" and not is_important(message):
-            return  # skip non-important user messages
-
         ChatMessage.objects.create(
             user_id=user_id,
             role=role,
@@ -33,11 +45,12 @@ def get_time():
 
 def get_history(user_id):
     try:
-        messages = ChatMessage.objects.filter(user_id=user_id).order_by('-created_at')[:10][::-1]
+        messages = ChatMessage.objects.filter(user_id=user_id).order_by('-created_at')[:20][::-1]
         history = ""
 
         for msg in messages:
-            history += f"{msg.role}: {msg.message}\n"
+            role = "AI" if msg.role == "ai" else "USER"
+            history += f"{role}: {msg.message}\n"
     except DatabaseError as e:
         print("MEMORY HISTORY ERROR:", e)
         return ""
@@ -48,18 +61,13 @@ def get_user_name(user_id):
     try:
         messages = ChatMessage.objects.filter(
             user_id=user_id,
-            role="user"
-        ).order_by('-created_at')[:50]
+            role="memory",
+            message__startswith = "name:"
+        ).order_by('-created_at').first()
 
-        for msg in messages:
-            match = re.search(
-                r"\bmy name is\s+([a-zA-Z][a-zA-Z .'-]{0,40})",
-                msg.message,
-                re.IGNORECASE,
-            )
-            if match:
-                return match.group(1).strip(" .")
-    except DatabaseError as e:
+        if messages:
+            return messages.message.split("name:")[1]
+    except Exception as e:
         print("MEMORY NAME ERROR:", e)
 
     return None

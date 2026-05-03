@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from .services.llm import run_agent
 from .services.memory import (
     clear_memory,
+    extract_user_name,
     get_history,
     get_time,
     get_user_name,
@@ -42,6 +43,20 @@ def extract_weather_location(message):
     return " ".join(words).strip(" ?.,!")
 
 
+def is_name_question(message):
+    normalized = re.sub(r"[^\w\s]", " ", message.lower())
+    normalized = re.sub(r"\s+", " ", normalized).strip()
+
+    return normalized in {
+        "name",
+        "my name",
+        "what is my name",
+        "whats my name",
+        "who am i",
+        "do you know my name",
+        "tell me my name",
+    }
+
 @api_view(["POST"])
 def chat(request):
     try:
@@ -76,27 +91,29 @@ def chat(request):
                 "response": f"The current time is {get_time()}"
             })
 
-        asks_for_name = any(
-            phrase in lower_msg
-            for phrase in ["my name", "what is my name", "who am i"]
-        )
+        provided_name = extract_user_name(user_message)
+        if provided_name:
+            save_message(user_id, "memory", f"name:{provided_name}")
+            response = f"Nice to meet you, {provided_name}. I'll remember your name."
+            save_message(user_id, "ai", response)
+            return Response({"response": response})
 
-        if asks_for_name and not re.search(r"\bmy name is\b", lower_msg):
+        if is_name_question(user_message):
             saved_name = get_user_name(user_id)
             if saved_name:
                 return Response({"response": f"Your name is {saved_name}."})
+            return Response({"response": "I don't know your name yet. Tell me by saying, \"my name is ...\""})
 
         save_message(user_id, "user", user_message)
 
         history = get_history(user_id)
         saved_name = get_user_name(user_id)
-        known_details = f"User name: {saved_name}" if saved_name else "No known user name yet."
+        known_details = f"User name: {saved_name}" if saved_name else ""
 
         prompt = f"""
 You are a helpful AI assistant.
 
-Remember important user details like name, location, preferences.
-Use the known details below when answering memory questions.
+If user's name is known, ALWAYS use it.
 
 Known details:
 {known_details}
